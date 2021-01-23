@@ -2,10 +2,14 @@
 // uppgrade https://youtu.be/HEb2akswCcw
 // g++ main.cpp -o main  start main
 #include <iostream>
-using namespace std;
-#include <Windows.h>
-#include <math.h>
+#include <vector>
+#include <utility>
+#include <algorithm>
 #include <chrono>
+using namespace std;
+#include <cmath>
+#include <stdio.h>
+#include <Windows.h>
 
 //l'écran, un tableau 
 int nScreenWidth = 120;
@@ -55,8 +59,8 @@ int main() {
     map += L"################";
     
     //boucle du jeu
-    while(1) {
-        
+    while(true) {
+        //gestion du temps pour avoir un taux de frames régulé
         time2 = chrono::system_clock::now();
         chrono::duration<float> elapsedTime = time2-time1;
         time1=time2;
@@ -66,8 +70,16 @@ int main() {
         if(GetAsyncKeyState((unsigned short)'Q')& 0x8000) {
             fPlayerA -= (0.1f) * fElapsedTime;
         }
-        else if(GetAsyncKeyState((unsigned short)'D')& 0x8000) {
+        if(GetAsyncKeyState((unsigned short)'D')& 0x8000) {
             fPlayerA += (0.1f)* fElapsedTime;
+        }
+        if(GetAsyncKeyState((unsigned short)'Z')& 0x8000) {
+            fPlayerX += sinf(fPlayerA)*5.0f*fElapsedTime;
+            fPlayerY += cosf(fPlayerA)*5.0f*fElapsedTime;
+        }
+        if(GetAsyncKeyState((unsigned short)'S')& 0x8000) {
+            fPlayerX -= sinf(fPlayerA)*5.0f*fElapsedTime;
+            fPlayerY -= cosf(fPlayerA)*5.0f*fElapsedTime;
         }
 
         for(int x=0; x<nScreenWidth; x++) {
@@ -82,7 +94,7 @@ int main() {
             while(!bHitWall && fDistanceToWall < fDepth){
                 fDistanceToWall += 0.1f;
                 int nTestX = (int) (fPlayerX + fEyeX*fDistanceToWall);
-                int nTestY = cosf(fPlayerY + fEyeY*fDistanceToWall);
+                int nTestY = (int)(fPlayerY + fEyeY*fDistanceToWall);
 
                 // test on est en dehors de la map
                 if(nTestX <0 || nTestX >=nMapWidth || nTestY <0 || nTestY >= nMapHeight) {
@@ -91,20 +103,27 @@ int main() {
                 }
                 else {
                     // test si la cellule est un mur, donc si le rayon dans la map est à la postion d'un #
-                    if(map[nTestY*nMapWidth+nTestX]=='#'){
-                        bHitWall == true;
+                    if (map.c_str()[nTestX * nMapWidth + nTestY] == '#'){
+                        bHitWall = true;
                     }
                 }
                 // calculer la distance du plafond et du sol
-                int nCeiling = (float) (nScreenHeight/2.0) - nScreenHeight/ ((float) fDistanceToWall);
+                int nCeiling = (float) (nScreenHeight/2.0) - nScreenHeight/ ((float)fDistanceToWall);
                 int nFloor = nScreenHeight - nCeiling;
+                // nShade est là pour afficher les murs selon leur distance
+                short nShade = ' ';
+                if (fDistanceToWall <= fDepth / 4.0f)			nShade = 0x2588;	// très proche, char très clair
+                else if (fDistanceToWall < fDepth / 3.0f)		nShade = 0x2593;
+                else if (fDistanceToWall < fDepth / 2.0f)		nShade = 0x2592;
+                else if (fDistanceToWall < fDepth)				nShade = 0x2591;
+                else											nShade = ' ';		// très loin, sombre
 
                 for(int y=0; y<nScreenHeight; y++) {
                     if(y<nCeiling) {
                         screen[y*nScreenWidth+x] = ' ';
                     }
                     else if (y>nCeiling && y <=nFloor) {
-                        screen[y*nScreenWidth+x] ='#';
+                        screen[y*nScreenWidth+x] = nShade;
                     }
                     else {
                         screen[y*nScreenWidth+x]= ' ';
